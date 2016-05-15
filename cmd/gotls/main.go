@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"gitlab.org/jamonation/go-tls-check"
+	"gitlab.com/jamonation/go-tls-check"
 )
 
 var ServerName = flag.String("server","","The DNS name of the server name to check")
