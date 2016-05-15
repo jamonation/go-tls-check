@@ -19,6 +19,7 @@ Flags are:
 ```
 
 TODO:
+
 1. This project needs tests. I don't know how to write them in Go. Any help would be appreciated.
 1. Refactor all the `fmt.Println` mess into proper switch/case format
 1. Get rid of the bash escape sequences and just use an external library
