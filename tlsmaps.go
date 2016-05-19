@@ -2,28 +2,28 @@ package tlschk
 
 var (
 	SignatureAlgorithms = map[int]string{
-		0: "UnknownSignatureAlgorithm",
-		1: "MD2WithRSA",
-		2: "MD5WithRSA",
-		3: "SHA1WithRSA",
-		4: "SHA256WithRSA",
-		5: "SHA384WithRSA",
-		6: "SHA512WithRSA",
-		7: "DSAWithSHA1",
-		8: "DSAWithSHA256",
-		9: "ECDSAWithSHA1",
+		0:  "UnknownSignatureAlgorithm",
+		1:  "MD2WithRSA",
+		2:  "MD5WithRSA",
+		3:  "SHA1WithRSA",
+		4:  "SHA256WithRSA",
+		5:  "SHA384WithRSA",
+		6:  "SHA512WithRSA",
+		7:  "DSAWithSHA1",
+		8:  "DSAWithSHA256",
+		9:  "ECDSAWithSHA1",
 		10: "ECDSAWithSHA256",
 		11: "ECDSAWithSHA384",
 		12: "ECDSAWithSHA512",
 	}
-	
+
 	TLSVersions = map[uint16]string{
 		0x0300: "SSL 3.0",
 		0x0301: "TLS 1.0",
 		0x0302: "TLS 1.1",
 		0x0303: "TLS 1.2",
 	}
-	
+
 	// CipherSuiteMap - list of ciphersuites based on: http://www.iana.org/assignments/tls-parameters/tls-parameters.xml
 	// reserved/unknown items are excluded.
 	CipherSuiteMap = map[uint16]string{
