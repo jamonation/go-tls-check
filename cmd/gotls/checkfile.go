@@ -59,17 +59,12 @@ func main() {
 			conn.Close()
 		}
 
-		/*
-			case server:
-			case host:
-			case port:
-			case insecure:
-		*/
-
 		/* TODOS
-		1. merge tlschk.CheckCerts into the above flags
 		2. strip all print/formatting from gotls and put into check.go
 		3. remove gotls entirely
+		4. Add json output for --server/--host case
+		5. Add download cert option for --server/--host case
+		6. Add enumerate remote TLS ciphers using n (configurable) channels to check remote servers
 		*/
 
 		return nil
