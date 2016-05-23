@@ -156,14 +156,16 @@ func CheckKeyPair() {
 			PrintText(ASN1Certs[i])
 		}
 	case Output == "json":
-		var certs []CertJSON
 
 		keyJSON := KeyJSON{
-			ModulusSHA1: keyModulusHash,
-			Filename:    KeyFile,
+			ModulusSHA1:    keyModulusHash,
+			Filename:       KeyFile,
+			MatchedCerts:   nil,
+			UnmatchedCerts: nil,
 		}
 
 		for _, c := range ASN1Certs {
+			certModulusHash := HashMaterial(ExtractModulus(c.PublicKey))
 			cert := CertJSON{
 				CommonName:      c.Subject.CommonName,
 				SerialNumber:    c.SerialNumber,
@@ -175,16 +177,18 @@ func CheckKeyPair() {
 				EmailAddresses:  c.EmailAddresses,
 				IPAddresses:     c.IPAddresses,
 				SHA1Fingerprint: HashMaterial(string(c.Raw)),
-				ModulusSHA1:     HashMaterial(ExtractModulus(c.PublicKey)),
+				ModulusSHA1:     certModulusHash,
 				Filename:        CertFile,
 			}
-			certs = append(certs, cert)
+
+			if certModulusHash == keyModulusHash {
+				keyJSON.MatchedCerts = append(keyJSON.MatchedCerts, cert)
+			} else {
+				keyJSON.UnmatchedCerts = append(keyJSON.UnmatchedCerts, cert)
+			}
 		}
 
-		js, err := json.MarshalIndent(struct {
-			Key   *KeyJSON   `json:"private key"`
-			Certs []CertJSON `json:"certificates"`
-		}{&keyJSON, certs}, "", "  ")
+		js, err := json.MarshalIndent(keyJSON, "", "  ")
 		if err != nil {
 			fmt.Println("ERROR MARSHALLING")
 			os.Exit(1)

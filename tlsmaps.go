@@ -6,15 +6,11 @@ import (
 	"time"
 )
 
-type MatchingKeys struct {
-	message string
-	key     KeyJSON
-	certs   []CertJSON
-}
-
 type KeyJSON struct {
-	ModulusSHA1 string
-	Filename    string
+	ModulusSHA1    string `json:"PrivateKeySHA1Modulus"`
+	Filename       string `json:"PrivateKeyFilename"`
+	MatchedCerts   []CertJSON
+	UnmatchedCerts []CertJSON
 }
 
 type CertJSON struct {

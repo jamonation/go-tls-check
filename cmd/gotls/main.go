@@ -2,46 +2,73 @@ package main
 
 import (
 	"crypto/tls"
-	"flag"
 	"fmt"
-	"os"
-
+	"github.com/codegangsta/cli"
 	tlschk "github.com/jamonation/go-tls-check"
+	"os"
+	"strconv"
 )
-
-var ServerName = flag.String("server", "", "The DNS name of the server name to check")
-var Port = flag.String("", "", "")
-var HostName = flag.String("host", "", "(optional) The hostname or IP of the server to connect to. Use in combination with -k/-noverify to test remote IPs")
-var InsecureSkipVerify = flag.Bool("noverify", false, "Turn off validation. Use with -host and IP addresses for best results")
-
-func init() {
-	flag.StringVar(ServerName, "s", "", "The name of the server name to check")
-	flag.StringVar(Port, "p", "443", "(default 443) The port on the remote server to check")
-	flag.BoolVar(InsecureSkipVerify, "k", false, "Turn off validation")
-
-}
 
 func main() {
 
-	flag.Parse()
+	app := cli.NewApp()
+	app.Name = "gotls"
+	app.Usage = "Examine local and remote SSL keys and certificates"
 
-	if *ServerName == "" {
-		fmt.Println("You must provide a -server argument")
-		os.Exit(1)
+	app.Flags = tlschk.AppFlags //flags live in appflags.go
+
+	app.Action = func(c *cli.Context) error {
+
+		switch {
+
+		case tlschk.CertFile != "" && tlschk.KeyFile != "":
+			tlschk.CheckKeyPair()
+
+		case tlschk.CertFile != "":
+			_, _, ASN1certs := tlschk.ProcessCerts()
+			if tlschk.Output == "json" {
+				tlschk.PrintJSONCert(ASN1certs)
+			} else {
+				for _, cert := range ASN1certs {
+					tlschk.PrintText(cert)
+				}
+			}
+
+		case tlschk.KeyFile != "":
+			_, publicKey := tlschk.ProcessKey()
+			keyModulusHash := tlschk.ExtractModulus(publicKey)
+			if tlschk.Output == "json" {
+				tlschk.PrintJSONKey(publicKey)
+			} else {
+				fmt.Println("Private key modulus SHA1 hash:", tlschk.HashMaterial(keyModulusHash))
+			}
+
+		case tlschk.Server != "":
+			if tlschk.Host == "" {
+				tlschk.Host = tlschk.Server
+			}
+
+			conn, err := tls.Dial("tcp", tlschk.Host+":"+strconv.Itoa(tlschk.Port), &tls.Config{InsecureSkipVerify: tlschk.InsecureSkipVerify})
+			if err != nil {
+				fmt.Println("Failed to connect: " + err.Error())
+				os.Exit(1)
+			}
+
+			tlschk.CheckCerts(conn, tlschk.Host, tlschk.Server, tlschk.InsecureSkipVerify)
+
+			conn.Close()
+		}
+
+		/* TODOS
+		2. strip all print/formatting from gotls and put into check.go
+		3. remove gotls entirely
+		4. Add json output for --server/--host case
+		5. Add download cert option for --server/--host case
+		6. Add enumerate remote TLS ciphers using n (configurable) channels to check remote servers
+		*/
+
+		return nil
 	}
+	app.Run(os.Args)
 
-	if *HostName == "" {
-		HostName = ServerName
-	}
-
-	conn, err := tls.Dial("tcp", *HostName+":"+*Port, &tls.Config{InsecureSkipVerify: *InsecureSkipVerify})
-
-	if err != nil {
-		fmt.Println("Failed to connect: " + err.Error())
-		os.Exit(1)
-	}
-
-	tlschk.CheckCerts(conn, *HostName, *ServerName, *InsecureSkipVerify)
-
-	conn.Close()
 }
