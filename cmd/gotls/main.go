@@ -30,7 +30,7 @@ func main() {
 				tlschk.PrintJSONCert(ASN1certs)
 			} else {
 				for _, cert := range ASN1certs {
-					tlschk.PrintText(cert)
+					tlschk.PrintText(*cert)
 				}
 			}
 
@@ -54,18 +54,13 @@ func main() {
 				os.Exit(1)
 			}
 
-			tlschk.CheckCerts(conn, tlschk.Host, tlschk.Server, tlschk.InsecureSkipVerify)
-
+			tlschk.CheckCerts(conn)
 			conn.Close()
 		}
 
 		/* TODOS
-		2. strip all print/formatting from gotls and put into check.go
-		3. remove gotls entirely
-		4. Add json output for --server/--host case
-		5. Add download cert option for --server/--host case
-		6. Add enumerate remote TLS ciphers using n (configurable) channels to check remote servers
-		*/
+
+		 */
 
 		return nil
 	}

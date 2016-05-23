@@ -40,10 +40,10 @@ func printSignerField(field string, value interface{}) {
 	printField(ARROW_DOWN_RIGHT, field, value)
 }
 
-func ParseRemoteCerts(certs []*x509.Certificate, InsecureSkipVerify bool) {
+func ParseRemoteCerts(certs []*x509.Certificate) {
 	chainLen := len(certs)
 	for i, cert := range certs {
-		PrintCert(i, *cert, chainLen, InsecureSkipVerify)
+		PrintCert(i, *cert, chainLen)
 	}
 }
 
@@ -102,12 +102,12 @@ func parseCert(certBlock *pem.Block) *x509.Certificate {
 	return decodedCertASN1
 }
 
-func ProcessCerts() ([]byte, []interface{}, []x509.Certificate) {
+func ProcessCerts() ([]byte, []interface{}, []*x509.Certificate) {
 	var cert *pem.Block
 	var certASN1 *x509.Certificate
 
 	//var splitRawCerts [][]byte
-	var ASN1certs []x509.Certificate
+	var ASN1certs []*x509.Certificate
 	var publicKeys []interface{}
 
 	rawCerts := readFile(CertFile)
@@ -116,7 +116,7 @@ func ProcessCerts() ([]byte, []interface{}, []x509.Certificate) {
 	for len(rest) > 0 {
 		cert, rest = decodeMaterial(rest)
 		certASN1 = parseCert(cert)
-		ASN1certs = append(ASN1certs, *certASN1)
+		ASN1certs = append(ASN1certs, certASN1)
 		publicKey := ExtractModulus(certASN1.PublicKey)
 		publicKeys = append(publicKeys, publicKey)
 	}
@@ -153,7 +153,7 @@ func CheckKeyPair() {
 			}
 			fmt.Println("Private key modulus SHA1 hash:", keyModulusHash)
 			fmt.Println("Public cert modulus SHA1 hash:", certModulusHash)
-			PrintText(ASN1Certs[i])
+			PrintText(*ASN1Certs[i])
 		}
 	case Output == "json":
 
@@ -219,7 +219,7 @@ func ExtractModulus(publicKey interface{}) string {
 	return modulus
 }
 
-func PrintCert(i int, c x509.Certificate, chainLen int, InsecureSkipVerify bool) {
+func PrintCert(i int, c x509.Certificate, chainLen int) {
 
 	pubKey := ExtractModulus(c.PublicKey)
 	shaSum := HashMaterial(string(c.Raw))
@@ -254,7 +254,7 @@ func PrintCert(i int, c x509.Certificate, chainLen int, InsecureSkipVerify bool)
 	}
 }
 
-func PrintJSONCert(rawCerts []x509.Certificate) {
+func PrintJSONCert(rawCerts []*x509.Certificate) {
 
 	var certs []CertJSON
 
@@ -324,25 +324,28 @@ func PrintText(c x509.Certificate) {
 	}
 }
 
-func CheckCerts(conn *tls.Conn, HostName string, ServerName string, InsecureSkipVerify bool) {
-
+func CheckCerts(conn *tls.Conn) {
+	var certs []*x509.Certificate
 	connTLSVersion := conn.ConnectionState().Version
 	connCipherSuite := conn.ConnectionState().CipherSuite
 
-	fmt.Println("\nConnected to", HostName, "with protocol:", TLSVersions[connTLSVersion])
+	fmt.Println("\nConnected to", Host, "with protocol:", TLSVersions[connTLSVersion])
 	fmt.Println("Negotiated cipher suite:", CipherSuiteMap[connCipherSuite], "\n")
 
 	if InsecureSkipVerify == false { // default behaviour unless -insecure flag is used
-		err := conn.VerifyHostname(ServerName)
+		err := conn.VerifyHostname(Server)
 		if err != nil {
-			fmt.Println("Bad ServerName: " + err.Error())
-			conn.Close()
-			os.Exit(1)
+			fmt.Println("Bad Server Name: " + err.Error())
 		}
-		ParseRemoteCerts(conn.ConnectionState().VerifiedChains[0], InsecureSkipVerify)
+		certs = conn.ConnectionState().VerifiedChains[0]
+		if Output == "json" {
+			PrintJSONCert(certs)
+		} else {
+			ParseRemoteCerts(certs)
+		}
 	} else { // use unverified cert chain, e.g. when connecting with -insecure
+		certs = conn.ConnectionState().PeerCertificates
 		warning.Println("WARNING: -noverify option specified. Only examining certificates sent by the remote server.\n")
-		ParseRemoteCerts(conn.ConnectionState().PeerCertificates, InsecureSkipVerify)
+		ParseRemoteCerts(certs)
 	}
-
 }
