@@ -6,11 +6,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"github.com/fatih/color"
 	"math/big"
 	"os"
-
-	"github.com/fatih/color"
 )
 
 const LIGHT_VERTICAL_BAR = "\u2758"
@@ -39,14 +40,161 @@ func printSignerField(field string, value interface{}) {
 	printField(ARROW_DOWN_RIGHT, field, value)
 }
 
-func parseCerts(certs []*x509.Certificate, InsecureSkipVerify bool) {
+func ParseRemoteCerts(certs []*x509.Certificate, InsecureSkipVerify bool) {
 	chainLen := len(certs)
 	for i, cert := range certs {
-		PrintCert(i, *cert, chainLen, InsecureSkipVerify, false)
+		PrintCert(i, *cert, chainLen, InsecureSkipVerify)
 	}
 }
 
-func hashMaterial(material string) string {
+func readFile(f string) []byte {
+	file, err := os.Open(f)
+	if err != nil {
+		fmt.Println("ERROR:", err.Error())
+		os.Exit(1)
+	}
+
+	info, err := os.Stat(f)
+	if err != nil {
+		fmt.Println("ERROR:", err.Error())
+		os.Exit(1)
+	}
+
+	fileSize := info.Size()
+	rawFile := make([]byte, fileSize-1) // because number of bytes starts at 1
+
+	file.Read(rawFile)
+	return rawFile
+}
+
+// Decode PEM encoded block, return block, and any extra bytes
+func decodeMaterial(p []byte) (*pem.Block, []byte) {
+	decodedMaterial, rest := pem.Decode(p)
+	return decodedMaterial, rest
+}
+
+func decodeKey(rawKey []byte) *rsa.PrivateKey {
+
+	decodedKey, rest := decodeMaterial(rawKey)
+	if len(rest) > 0 {
+		fmt.Printf("Found invalid or non-key material in %s:\n", KeyFile)
+		fmt.Println(string(rest))
+	}
+
+	decodedKeyASN1, err := x509.ParsePKCS1PrivateKey(decodedKey.Bytes)
+	if err != nil {
+		fmt.Println("Unable to parse private key. Error was:")
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	return decodedKeyASN1
+}
+
+// parse a PEM block and return an x509 certificate
+func parseCert(certBlock *pem.Block) *x509.Certificate {
+	decodedCertASN1, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		fmt.Println("Unable to parse public certificate. Error was:")
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	return decodedCertASN1
+}
+
+func ProcessCerts() ([]byte, []interface{}, []x509.Certificate) {
+	var cert *pem.Block
+	var certASN1 *x509.Certificate
+
+	//var splitRawCerts [][]byte
+	var ASN1certs []x509.Certificate
+	var publicKeys []interface{}
+
+	rawCerts := readFile(CertFile)
+	rest := rawCerts
+
+	for len(rest) > 0 {
+		cert, rest = decodeMaterial(rest)
+		certASN1 = parseCert(cert)
+		ASN1certs = append(ASN1certs, *certASN1)
+		publicKey := ExtractModulus(certASN1.PublicKey)
+		publicKeys = append(publicKeys, publicKey)
+	}
+
+	return rawCerts, publicKeys, ASN1certs
+}
+
+func ProcessKey() ([]byte, *big.Int) {
+	var privateKey *rsa.PrivateKey
+	var publicKey *big.Int
+
+	rawKey := readFile(KeyFile)
+	privateKey = decodeKey(rawKey)
+	publicKey = privateKey.PublicKey.N
+	return rawKey, publicKey
+}
+
+func CheckKeyPair() {
+	_, keyPublicKey := ProcessKey()
+	_, _, ASN1Certs := ProcessCerts()
+
+	keyModulus := ExtractModulus(keyPublicKey)
+	keyModulusHash := HashMaterial(keyModulus)
+
+	switch {
+	case Output == "text":
+		for i, _ := range ASN1Certs {
+			certModulus := ExtractModulus(ASN1Certs[i].PublicKey)
+			certModulusHash := HashMaterial(certModulus)
+			if certModulus != keyModulus {
+				fmt.Println("\nPublic and private keys DO NOT MATCH.")
+			} else {
+				fmt.Println("\nPublic and private keys MATCH")
+			}
+			fmt.Println("Private key modulus SHA1 hash:", keyModulusHash)
+			fmt.Println("Public cert modulus SHA1 hash:", certModulusHash)
+			PrintText(ASN1Certs[i])
+		}
+	case Output == "json":
+		var certs []CertJSON
+
+		keyJSON := KeyJSON{
+			ModulusSHA1: keyModulusHash,
+			Filename:    KeyFile,
+		}
+
+		for _, c := range ASN1Certs {
+			cert := CertJSON{
+				CommonName:      c.Subject.CommonName,
+				SerialNumber:    c.SerialNumber,
+				Issuer:          c.Issuer.CommonName,
+				IsCA:            c.IsCA,
+				NotBefore:       c.NotBefore,
+				NotAfter:        c.NotAfter,
+				DNSNames:        c.DNSNames,
+				EmailAddresses:  c.EmailAddresses,
+				IPAddresses:     c.IPAddresses,
+				SHA1Fingerprint: HashMaterial(string(c.Raw)),
+				ModulusSHA1:     HashMaterial(ExtractModulus(c.PublicKey)),
+				Filename:        CertFile,
+			}
+			certs = append(certs, cert)
+		}
+
+		js, err := json.MarshalIndent(struct {
+			Key   *KeyJSON   `json:"private key"`
+			Certs []CertJSON `json:"certificates"`
+		}{&keyJSON, certs}, "", "  ")
+		if err != nil {
+			fmt.Println("ERROR MARSHALLING")
+			os.Exit(1)
+		}
+		fmt.Println(string(js))
+	}
+	return
+}
+
+func HashMaterial(material string) string {
 	h := sha1.New()
 	h.Write([]byte(material))
 	shaSum := h.Sum(nil)
@@ -54,20 +202,20 @@ func hashMaterial(material string) string {
 	return hash
 }
 
-func stringifyModulus(pubKey interface{}) string {
-	var stringModulus string
+// WHERE IS THE ERROR HANDLING!? Or, should this never be reached if there's no modulus?
+func ExtractModulus(publicKey interface{}) string {
+	var modulus string
 
-	// need this type assertion to handle empty interface{}
-	switch modulus := pubKey.(type) {
+	switch key := publicKey.(type) {
 	case *rsa.PublicKey:
-		stringModulus = modulus.N.String()
+		modulus = key.N.String()
 	case *big.Int:
-		stringModulus = modulus.String()
+		modulus = key.String()
 	}
-	return stringModulus
+	return modulus
 }
 
-func PrintCert(i int, cert interface{}, chainLen int, InsecureSkipVerify bool, isFile bool) {
+func PrintCert(i int, cert interface{}, chainLen int, InsecureSkipVerify bool) {
 
 	var c *x509.Certificate
 
@@ -76,9 +224,9 @@ func PrintCert(i int, cert interface{}, chainLen int, InsecureSkipVerify bool, i
 		c = certificate
 	}
 
-	pubKey := stringifyModulus(c.PublicKey)
-	shaSum := hashMaterial(string(c.Raw))
-	modSum := hashMaterial(pubKey)
+	pubKey := ExtractModulus(c.PublicKey)
+	shaSum := HashMaterial(string(c.Raw))
+	modSum := HashMaterial(pubKey)
 
 	if !c.IsCA {
 		printDefaultFieldWithEmoji(EMOJI_KEY, "Certificate for:", c.DNSNames)
@@ -109,11 +257,53 @@ func PrintCert(i int, cert interface{}, chainLen int, InsecureSkipVerify bool, i
 	}
 }
 
-func PrintText(c x509.Certificate) {
+func PrintJSONCert(rawCerts []x509.Certificate) {
 
-	//pubKey := extractModulus(c.PublicKey)
-	shaSum := hashMaterial(string(c.Raw))
-	//modSum := hashMaterial(pubKey)
+	var certs []CertJSON
+
+	for _, c := range rawCerts {
+		certs = append(certs, CertJSON{
+			CommonName:      c.Subject.CommonName,
+			SerialNumber:    c.SerialNumber,
+			Issuer:          c.Issuer.CommonName,
+			IsCA:            c.IsCA,
+			NotBefore:       c.NotBefore,
+			NotAfter:        c.NotAfter,
+			DNSNames:        c.DNSNames,
+			EmailAddresses:  c.EmailAddresses,
+			IPAddresses:     c.IPAddresses,
+			SHA1Fingerprint: HashMaterial(string(c.Raw)),
+			ModulusSHA1:     HashMaterial(ExtractModulus(c.PublicKey)),
+			Filename:        CertFile,
+		})
+	}
+	jsonData, err := json.MarshalIndent(certs, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling json")
+	}
+	fmt.Println(string(jsonData))
+
+	return
+}
+
+func PrintJSONKey(publicKey *big.Int) {
+	key := KeyJSON{
+		ModulusSHA1: HashMaterial(publicKey.String()),
+		Filename:    KeyFile,
+	}
+	jsonKey, err := json.MarshalIndent(key, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling private key into JSON:")
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	fmt.Println(string(jsonKey))
+}
+
+func PrintText(c x509.Certificate) {
+	pubKey := ExtractModulus(c.PublicKey)
+	shaSum := HashMaterial(string(c.Raw))
+	modSum := HashMaterial(pubKey)
 
 	if !c.IsCA {
 		printDefaultFieldWithEmoji(EMOJI_KEY, "Certificate for:", c.Subject.CommonName)
@@ -121,7 +311,7 @@ func PrintText(c x509.Certificate) {
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
 		printDefaultField("SHA1 fingerprint:", shaSum)
-		//printDefaultField("Modulus SHA1:", modSum)
+		printDefaultField("Modulus SHA1:", modSum)
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Issued by:", c.Issuer.CommonName)
 	} else {
@@ -131,7 +321,7 @@ func PrintText(c x509.Certificate) {
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
 		printDefaultField("SHA1 fingerprint:", shaSum)
-		//printDefaultField("Modulus SHA1:", modSum)
+		printDefaultField("Modulus SHA1:", modSum)
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Signed by:", c.Issuer.CommonName)
 	}
@@ -152,10 +342,10 @@ func CheckCerts(conn *tls.Conn, HostName string, ServerName string, InsecureSkip
 			conn.Close()
 			os.Exit(1)
 		}
-		parseCerts(conn.ConnectionState().VerifiedChains[0], InsecureSkipVerify)
+		ParseRemoteCerts(conn.ConnectionState().VerifiedChains[0], InsecureSkipVerify)
 	} else { // use unverified cert chain, e.g. when connecting with -insecure
 		warning.Println("WARNING: -noverify option specified. Only examining certificates sent by the remote server.\n")
-		parseCerts(conn.ConnectionState().PeerCertificates, InsecureSkipVerify)
+		ParseRemoteCerts(conn.ConnectionState().PeerCertificates, InsecureSkipVerify)
 	}
 
 }

@@ -1,5 +1,37 @@
 package tlschk
 
+import (
+	"math/big"
+	"net"
+	"time"
+)
+
+type MatchingKeys struct {
+	message string
+	key     KeyJSON
+	certs   []CertJSON
+}
+
+type KeyJSON struct {
+	ModulusSHA1 string
+	Filename    string
+}
+
+type CertJSON struct {
+	CommonName      string
+	NotBefore       time.Time
+	NotAfter        time.Time
+	SerialNumber    *big.Int
+	SHA1Fingerprint string
+	ModulusSHA1     string
+	Issuer          string
+	IsCA            bool
+	DNSNames        []string
+	EmailAddresses  []string
+	IPAddresses     []net.IP
+	Filename        string
+}
+
 var (
 	SignatureAlgorithms = map[int]string{
 		0:  "UnknownSignatureAlgorithm",
