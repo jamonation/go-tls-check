@@ -27,6 +27,7 @@ GLOBAL OPTIONS:
 ```
 
 TODOS:
+
 0. REFACTOR this mess. Consolidate, use interfaces. DRY!
 1. strip all print/formatting from gotls and put into check.go
 2. remove gotls entirely
