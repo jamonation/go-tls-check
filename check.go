@@ -215,14 +215,7 @@ func ExtractModulus(publicKey interface{}) string {
 	return modulus
 }
 
-func PrintCert(i int, cert interface{}, chainLen int, InsecureSkipVerify bool) {
-
-	var c *x509.Certificate
-
-	switch certificate := cert.(type) {
-	case *x509.Certificate:
-		c = certificate
-	}
+func PrintCert(i int, c x509.Certificate, chainLen int, InsecureSkipVerify bool) {
 
 	pubKey := ExtractModulus(c.PublicKey)
 	shaSum := HashMaterial(string(c.Raw))
