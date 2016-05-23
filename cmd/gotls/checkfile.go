@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/codegangsta/cli"
 	tlschk "github.com/jamonation/go-tls-check"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -18,8 +20,10 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 
 		switch {
+
 		case tlschk.CertFile != "" && tlschk.KeyFile != "":
 			tlschk.CheckKeyPair()
+
 		case tlschk.CertFile != "":
 			_, _, ASN1certs := tlschk.ProcessCerts()
 			if tlschk.Output == "json" {
@@ -29,6 +33,7 @@ func main() {
 					tlschk.PrintText(cert)
 				}
 			}
+
 		case tlschk.KeyFile != "":
 			_, publicKey := tlschk.ProcessKey()
 			keyModulusHash := tlschk.ExtractModulus(publicKey)
@@ -37,7 +42,35 @@ func main() {
 			} else {
 				fmt.Println("Private key modulus SHA1 hash:", tlschk.HashMaterial(keyModulusHash))
 			}
+
+		case tlschk.Server != "":
+			if tlschk.Host == "" {
+				tlschk.Host = tlschk.Server
+			}
+
+			conn, err := tls.Dial("tcp", tlschk.Host+":"+strconv.Itoa(tlschk.Port), &tls.Config{InsecureSkipVerify: tlschk.InsecureSkipVerify})
+			if err != nil {
+				fmt.Println("Failed to connect: " + err.Error())
+				os.Exit(1)
+			}
+
+			tlschk.CheckCerts(conn, tlschk.Host, tlschk.Server, tlschk.InsecureSkipVerify)
+
+			conn.Close()
 		}
+
+		/*
+			case server:
+			case host:
+			case port:
+			case insecure:
+		*/
+
+		/* TODOS
+		1. merge tlschk.CheckCerts into the above flags
+		2. strip all print/formatting from gotls and put into check.go
+		3. remove gotls entirely
+		*/
 
 		return nil
 	}

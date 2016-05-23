@@ -5,12 +5,13 @@ import (
 )
 
 var (
-	CertFile string
-	KeyFile  string
-	Output   string
-	Server   string
-	Host     string
-	Port     int
+	CertFile           string
+	KeyFile            string
+	Output             string
+	Server             string
+	Host               string
+	Port               int
+	InsecureSkipVerify bool
 
 	AppFlags = []cli.Flag{
 		cli.StringFlag{
@@ -44,6 +45,11 @@ var (
 			Value:       443,
 			Usage:       "Remote HTTP port, e.g. 8443",
 			Destination: &Port,
+		},
+		cli.BoolFlag{
+			Name:        "insecure",
+			Usage:       "Skip chain & Root CA validation",
+			Destination: &InsecureSkipVerify,
 		},
 	}
 )
