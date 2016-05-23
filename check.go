@@ -1,11 +1,13 @@
 package tlschk
 
 import (
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/fatih/color"
@@ -40,22 +42,51 @@ func printSignerField(field string, value interface{}) {
 func parseCerts(certs []*x509.Certificate, InsecureSkipVerify bool) {
 	chainLen := len(certs)
 	for i, cert := range certs {
-		printCert(i, cert, chainLen, InsecureSkipVerify)
+		PrintCert(i, *cert, chainLen, InsecureSkipVerify, false)
 	}
 }
 
-func printCert(i int, c *x509.Certificate, chainLen int, InsecureSkipVerify bool) {
-
+func hashMaterial(material string) string {
 	h := sha1.New()
-	h.Write([]byte(c.Raw))
+	h.Write([]byte(material))
 	shaSum := h.Sum(nil)
+	hash := hex.EncodeToString(shaSum)
+	return hash
+}
+
+func stringifyModulus(pubKey interface{}) string {
+	var stringModulus string
+
+	// need this type assertion to handle empty interface{}
+	switch modulus := pubKey.(type) {
+	case *rsa.PublicKey:
+		stringModulus = modulus.N.String()
+	case *big.Int:
+		stringModulus = modulus.String()
+	}
+	return stringModulus
+}
+
+func PrintCert(i int, cert interface{}, chainLen int, InsecureSkipVerify bool, isFile bool) {
+
+	var c *x509.Certificate
+
+	switch certificate := cert.(type) {
+	case *x509.Certificate:
+		c = certificate
+	}
+
+	pubKey := stringifyModulus(c.PublicKey)
+	shaSum := hashMaterial(string(c.Raw))
+	modSum := hashMaterial(pubKey)
 
 	if !c.IsCA {
 		printDefaultFieldWithEmoji(EMOJI_KEY, "Certificate for:", c.DNSNames)
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
-		printDefaultField("SHA1 fingerprint:", hex.EncodeToString(shaSum))
+		printDefaultField("SHA1 fingerprint:", shaSum)
+		printDefaultField("Modulus SHA1:", modSum)
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Issued by:", c.Issuer.CommonName)
 	} else {
@@ -71,7 +102,36 @@ func printCert(i int, c *x509.Certificate, chainLen int, InsecureSkipVerify bool
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
-		printDefaultField("SHA1 fingerprint:", hex.EncodeToString(shaSum))
+		printDefaultField("SHA1 fingerprint:", shaSum)
+		printDefaultField("Modulus SHA1:", modSum)
+		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
+		printSignerField("Signed by:", c.Issuer.CommonName)
+	}
+}
+
+func PrintText(c x509.Certificate) {
+
+	//pubKey := extractModulus(c.PublicKey)
+	shaSum := hashMaterial(string(c.Raw))
+	//modSum := hashMaterial(pubKey)
+
+	if !c.IsCA {
+		printDefaultFieldWithEmoji(EMOJI_KEY, "Certificate for:", c.Subject.CommonName)
+		printDefaultField("Valid from:", c.NotBefore)
+		printDefaultField("Valid until:", c.NotAfter)
+		printDefaultField("Serial number:", c.SerialNumber)
+		printDefaultField("SHA1 fingerprint:", shaSum)
+		//printDefaultField("Modulus SHA1:", modSum)
+		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
+		printSignerField("Issued by:", c.Issuer.CommonName)
+	} else {
+		fmt.Println(LIGHT_VERTICAL_BAR)
+		printDefaultFieldWithEmoji(EMOJI_LOCK, "Intermediate CA:", c.Subject.CommonName)
+		printDefaultField("Valid from:", c.NotBefore)
+		printDefaultField("Valid until:", c.NotAfter)
+		printDefaultField("Serial number:", c.SerialNumber)
+		printDefaultField("SHA1 fingerprint:", shaSum)
+		//printDefaultField("Modulus SHA1:", modSum)
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Signed by:", c.Issuer.CommonName)
 	}
