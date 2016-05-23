@@ -1,24 +1,26 @@
-This tool is intended to make it easy to fetch remote x509 certificates used for HTTPS encryption.
-
-Only the `-s` or `-server` flag is required.
+This tool is intended to make it easy to parse local PEM encoded RSA keys and x509 certificates, which are commonly used for HTTPS encryption.
 
 Flags are:
 
 ```
-  -host string
-    	(optional) The hostname or IP of the server to connect to. Use in combination with -k/-noverify to test remote IPs
-  -k	Turn off validation. Use with -host and IP addresses for best results
-  -noverify
-    	Turn off validation. Use with -host and IP addresses for best results
-  -p string
-    	(default 443) The port on the remote server to check (default "443")
-  -s string
-    	The DNS name of the server name to check
-  -server string
-    	The DNS name of the server name to check
+./checkfile -h                      
+NAME:
+   gotls - Examine local and (soon) remote SSL keys and certificates
+
+USAGE:
+   checkfile [global options] command [command options] [arguments...]
+
+VERSION:
+   0.0.0
+
+COMMANDS:
+GLOBAL OPTIONS:
+   --cert value, -c value	Filesystem path to public .pem file
+   --key value, -k value	Filesystem path to private .key file
+   --format value, -f value	Output format (text, json) (default: "text")
+   --server value, -s value	Remote server name, e.g. golang.org
+   --host value			Remote host, e.g. 216.58.220.49 or golang.org
+   --port value, -p value	Remote HTTP port, e.g. 8443 (default: 443)
+   --help, -h			show help
+   --version, -v		print the version
 ```
-
-TODO:
-
-1. This project needs tests. I don't know how to write them in Go. Any help would be appreciated.
-1. Refactor all the `fmt.Println` mess into proper switch/case format
