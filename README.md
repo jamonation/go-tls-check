@@ -5,12 +5,12 @@ This tool is intended to make it easy to parse local PEM encoded RSA keys and x5
 Flags are:
 
 ```
-./checkfile -h                      
+gotls -h                      
 NAME:
    gotls - Examine local and remote SSL keys and certificates
 
 USAGE:
-   checkfile [global options] command [command options] [arguments...]
+   gotls [global options] command [command options] [arguments...]
 
 VERSION:
    0.0.0
