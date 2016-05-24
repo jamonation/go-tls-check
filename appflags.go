@@ -4,14 +4,15 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+// various global variables for flags
 var (
-	CertFile           string
-	KeyFile            string
-	Output             string
-	Server             string
-	Host               string
-	Port               int
-	InsecureSkipVerify bool
+	CertFile           string // local file containing PEM certificate(s)
+	KeyFile            string // local file containing PEM private key
+	Output             string // output format
+	Server             string // remote server
+	Host               string // remote hostname
+	Port               int    // remote port
+	InsecureSkipVerify bool   // skip host/server validation
 
 	AppFlags = []cli.Flag{
 		cli.StringFlag{

@@ -14,10 +14,10 @@ import (
 	"os"
 )
 
-const LIGHT_VERTICAL_BAR = "\u2758"
-const ARROW_DOWN_RIGHT = "\u2937"
-const EMOJI_KEY = "\U0001f511"
-const EMOJI_LOCK = "\U0001f512"
+const lightVerticalBar = "\u2758" // vertical bar
+const arrowDownRight = "\u2937"   // down right arrow
+const emojiKey = "\U0001f511"     // key 
+const emojiLock = "\U0001f512"    // lock
 
 var label = color.New(color.FgRed, color.Bold).SprintFunc()
 var warning = color.New(color.FgRed, color.Bold, color.Underline)
@@ -29,22 +29,15 @@ func printField(prefix string, field string, value interface{}) {
 }
 
 func printDefaultField(field string, value interface{}) {
-	printField(LIGHT_VERTICAL_BAR, field, value)
+	printField(lightVerticalBar, field, value)
 }
 
-func printDefaultFieldWithEmoji(emoji string, field string, value interface{}) {
-	printField(LIGHT_VERTICAL_BAR+" "+emoji, field, value)
+func printDefaultFieldWithemoji(emoji string, field string, value interface{}) {
+	printField(lightVerticalBar+" "+emoji, field, value)
 }
 
 func printSignerField(field string, value interface{}) {
-	printField(ARROW_DOWN_RIGHT, field, value)
-}
-
-func ParseRemoteCerts(certs []*x509.Certificate) {
-	chainLen := len(certs)
-	for i, cert := range certs {
-		PrintCert(i, *cert, chainLen)
-	}
+	printField(arrowDownRight, field, value)
 }
 
 func readFile(f string) []byte {
@@ -102,6 +95,18 @@ func parseCert(certBlock *pem.Block) *x509.Certificate {
 	return decodedCertASN1
 }
 
+// ParseRemoteCerts is a dumb function, should be refactored into PrintText
+// just iterates slice of cert pointers and dispatches to PrintCert
+func ParseRemoteCerts(certs []*x509.Certificate) {
+	chainLen := len(certs)
+	for i, cert := range certs {
+		PrintCert(i, *cert, chainLen)
+	}
+}
+
+// ProcessCerts reads a file from the filesystem
+// - then it splits raw bytes into separate pem.Blocks
+// - then it extracts the parsed x509.Certificate for each block
 func ProcessCerts() ([]byte, []interface{}, []*x509.Certificate) {
 	var cert *pem.Block
 	var certASN1 *x509.Certificate
@@ -124,6 +129,7 @@ func ProcessCerts() ([]byte, []interface{}, []*x509.Certificate) {
 	return rawCerts, publicKeys, ASN1certs
 }
 
+// ProcessKey reads and returns a private key from the filesystem 
 func ProcessKey() ([]byte, *big.Int) {
 	var privateKey *rsa.PrivateKey
 	var publicKey *big.Int
@@ -134,6 +140,7 @@ func ProcessKey() ([]byte, *big.Int) {
 	return rawKey, publicKey
 }
 
+// CheckKeyPair compares a private key with n certificates to see if they match
 func CheckKeyPair() {
 	_, keyPublicKey := ProcessKey()
 	_, _, ASN1Certs := ProcessCerts()
@@ -143,7 +150,7 @@ func CheckKeyPair() {
 
 	switch {
 	case Output == "text":
-		for i, _ := range ASN1Certs {
+		for i := range ASN1Certs {
 			certModulus := ExtractModulus(ASN1Certs[i].PublicKey)
 			certModulusHash := HashMaterial(certModulus)
 			if certModulus != keyModulus {
@@ -198,6 +205,7 @@ func CheckKeyPair() {
 	return
 }
 
+// HashMaterial returns hex encoded SHA1 sums of input strings
 func HashMaterial(material string) string {
 	h := sha1.New()
 	h.Write([]byte(material))
@@ -206,6 +214,7 @@ func HashMaterial(material string) string {
 	return hash
 }
 
+// ExtractModulus uses type assertion to get the modulus from a public or private key
 // WHERE IS THE ERROR HANDLING!? Or, should this never be reached if there's no modulus?
 func ExtractModulus(publicKey interface{}) string {
 	var modulus string
@@ -219,6 +228,8 @@ func ExtractModulus(publicKey interface{}) string {
 	return modulus
 }
 
+
+// PrintCert ought to be merged into PrintText - they are pretty much duplicates
 func PrintCert(i int, c x509.Certificate, chainLen int) {
 
 	pubKey := ExtractModulus(c.PublicKey)
@@ -226,7 +237,7 @@ func PrintCert(i int, c x509.Certificate, chainLen int) {
 	modSum := HashMaterial(pubKey)
 
 	if !c.IsCA {
-		printDefaultFieldWithEmoji(EMOJI_KEY, "Certificate for:", c.DNSNames)
+		printDefaultFieldWithemoji(emojiKey, "Certificate for:", c.DNSNames)
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
@@ -235,14 +246,14 @@ func PrintCert(i int, c x509.Certificate, chainLen int) {
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Issued by:", c.Issuer.CommonName)
 	} else {
-		fmt.Println(LIGHT_VERTICAL_BAR)
+		fmt.Println(lightVerticalBar)
 		// make this into a switch set of statements
 		if i == chainLen-1 && InsecureSkipVerify == false {
-			printDefaultFieldWithEmoji(EMOJI_LOCK, "Root CA:", c.Subject.CommonName)
+			printDefaultFieldWithemoji(emojiLock, "Root CA:", c.Subject.CommonName)
 		} else if InsecureSkipVerify == true {
-			printDefaultFieldWithEmoji(EMOJI_LOCK, "Intermediate CA:", c.Subject.CommonName)
+			printDefaultFieldWithemoji(emojiLock, "Intermediate CA:", c.Subject.CommonName)
 		} else {
-			printDefaultFieldWithEmoji(EMOJI_LOCK, "Intermediate CA:", c.Subject.CommonName)
+			printDefaultFieldWithemoji(emojiLock, "Intermediate CA:", c.Subject.CommonName)
 		}
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
@@ -254,6 +265,7 @@ func PrintCert(i int, c x509.Certificate, chainLen int) {
 	}
 }
 
+// PrintJSONCert prints a certificate(s) as JSON
 func PrintJSONCert(rawCerts []*x509.Certificate) {
 
 	var certs []CertJSON
@@ -279,10 +291,9 @@ func PrintJSONCert(rawCerts []*x509.Certificate) {
 		fmt.Println("Error marshalling json")
 	}
 	fmt.Println(string(jsonData))
-
-	return
 }
 
+// PrintJSONKey prints a private key modulus and path as JSON
 func PrintJSONKey(publicKey *big.Int) {
 	key := KeyJSON{
 		ModulusSHA1: HashMaterial(publicKey.String()),
@@ -297,13 +308,14 @@ func PrintJSONKey(publicKey *big.Int) {
 	fmt.Println(string(jsonKey))
 }
 
+// PrintText prints out specific fields of formatted ASN1 certificate data 
 func PrintText(c x509.Certificate) {
 	pubKey := ExtractModulus(c.PublicKey)
 	shaSum := HashMaterial(string(c.Raw))
 	modSum := HashMaterial(pubKey)
 
 	if !c.IsCA {
-		printDefaultFieldWithEmoji(EMOJI_KEY, "Certificate for:", c.Subject.CommonName)
+		printDefaultFieldWithemoji(emojiKey, "Certificate for:", c.Subject.CommonName)
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
@@ -312,8 +324,8 @@ func PrintText(c x509.Certificate) {
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Issued by:", c.Issuer.CommonName)
 	} else {
-		fmt.Println(LIGHT_VERTICAL_BAR)
-		printDefaultFieldWithEmoji(EMOJI_LOCK, "Intermediate CA:", c.Subject.CommonName)
+		fmt.Println(lightVerticalBar)
+		printDefaultFieldWithemoji(emojiLock, "Intermediate CA:", c.Subject.CommonName)
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
@@ -324,13 +336,15 @@ func PrintText(c x509.Certificate) {
 	}
 }
 
+// CheckCerts connects to a remote Host and can validate a cert chain
+// Or simply display the server's certificate(s)
 func CheckCerts(conn *tls.Conn) {
 	var certs []*x509.Certificate
 	connTLSVersion := conn.ConnectionState().Version
 	connCipherSuite := conn.ConnectionState().CipherSuite
 
 	fmt.Println("\nConnected to", Host, "with protocol:", TLSVersions[connTLSVersion])
-	fmt.Println("Negotiated cipher suite:", CipherSuiteMap[connCipherSuite], "\n")
+	fmt.Println("Negotiated cipher suite:", CipherSuiteMap[connCipherSuite])
 
 	if InsecureSkipVerify == false { // default behaviour unless -insecure flag is used
 		err := conn.VerifyHostname(Server)
@@ -345,7 +359,7 @@ func CheckCerts(conn *tls.Conn) {
 		}
 	} else { // use unverified cert chain, e.g. when connecting with -insecure
 		certs = conn.ConnectionState().PeerCertificates
-		warning.Println("WARNING: -noverify option specified. Only examining certificates sent by the remote server.\n")
+		warning.Printf("WARNING: -noverify option specified. Only examining certificates sent by the remote server.\n")
 		ParseRemoteCerts(certs)
 	}
 }

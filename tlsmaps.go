@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// KeyJSON is a container for key & associated (or not) certs
 type KeyJSON struct {
 	ModulusSHA1    string `json:"PrivateKeySHA1Modulus"`
 	Filename       string `json:"PrivateKeyFilename"`
@@ -13,6 +14,8 @@ type KeyJSON struct {
 	UnmatchedCerts []CertJSON
 }
 
+// CertJSON contains some selected ASN1 fields for json output
+// willing to add more ASN1 fields, or all if requested
 type CertJSON struct {
 	CommonName      string
 	NotBefore       time.Time
@@ -28,6 +31,8 @@ type CertJSON struct {
 	Filename        string
 }
 
+// various mappings for signatures, cipher suites
+// thanks to 
 var (
 	SignatureAlgorithms = map[int]string{
 		0:  "UnknownSignatureAlgorithm",
@@ -52,7 +57,9 @@ var (
 		0x0303: "TLS 1.2",
 	}
 
-	// CipherSuiteMap - list of ciphersuites based on: http://www.iana.org/assignments/tls-parameters/tls-parameters.xml
+	// credit to https://husobee.github.io/golang/tls/2016/01/27/golang-tls.html
+	// https://gist.github.com/husobee/6e9f998653d66f7481da
+	// CipherSuiteMap - list of ciphersuites based on: http://www.iana.org/assignmentS/tls-parameters/tls-parameters.xml
 	// reserved/unknown items are excluded.
 	CipherSuiteMap = map[uint16]string{
 		0x0000: "TLS_NULL_WITH_NULL_NULLY",
