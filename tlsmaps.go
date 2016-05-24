@@ -32,7 +32,7 @@ type CertJSON struct {
 }
 
 // various mappings for signatures, cipher suites
-// thanks to 
+// thanks to
 var (
 	SignatureAlgorithms = map[int]string{
 		0:  "UnknownSignatureAlgorithm",

@@ -16,7 +16,7 @@ import (
 
 const lightVerticalBar = "\u2758" // vertical bar
 const arrowDownRight = "\u2937"   // down right arrow
-const emojiKey = "\U0001f511"     // key 
+const emojiKey = "\U0001f511"     // key
 const emojiLock = "\U0001f512"    // lock
 
 var label = color.New(color.FgRed, color.Bold).SprintFunc()
@@ -129,7 +129,7 @@ func ProcessCerts() ([]byte, []interface{}, []*x509.Certificate) {
 	return rawCerts, publicKeys, ASN1certs
 }
 
-// ProcessKey reads and returns a private key from the filesystem 
+// ProcessKey reads and returns a private key from the filesystem
 func ProcessKey() ([]byte, *big.Int) {
 	var privateKey *rsa.PrivateKey
 	var publicKey *big.Int
@@ -228,7 +228,6 @@ func ExtractModulus(publicKey interface{}) string {
 	return modulus
 }
 
-
 // PrintCert ought to be merged into PrintText - they are pretty much duplicates
 func PrintCert(i int, c x509.Certificate, chainLen int) {
 
@@ -308,7 +307,7 @@ func PrintJSONKey(publicKey *big.Int) {
 	fmt.Println(string(jsonKey))
 }
 
-// PrintText prints out specific fields of formatted ASN1 certificate data 
+// PrintText prints out specific fields of formatted ASN1 certificate data
 func PrintText(c x509.Certificate) {
 	pubKey := ExtractModulus(c.PublicKey)
 	shaSum := HashMaterial(string(c.Raw))
