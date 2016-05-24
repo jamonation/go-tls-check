@@ -31,9 +31,9 @@ GLOBAL OPTIONS:
 TODOS:
 
 0. REFACTOR this mess. Consolidate, use interfaces. DRY!
-1. strip all print/formatting from gotls and put into check.go
-2. remove gotls entirely
-3. Add json output for --server/--host case
+1. ~~strip all print/formatting from gotls and put into check.go~~
+2. ~~remove gotls entirely~~ ignore, was from a temp iteration
+3. ~~Add json output for --server/--host case~~
 4. Add download cert option for --server/--host case
 5. Add enumerate remote TLS ciphers using n (configurable) channels to check remote servers
 6. Tests. Tests. Tests. Tests. Tests. All dev should stop until there are tests.
