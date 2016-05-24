@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/jamonation/go-tls-check)](https://goreportcard.com/report/github.com/jamonation/go-tls-check)
+
 This tool is intended to make it easy to parse local PEM encoded RSA keys and x509 certificates, which are commonly used for HTTPS encryption.
 
 Flags are:
