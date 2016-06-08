@@ -88,6 +88,20 @@ func main() {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
+
+			if tlschk.Output == "json" {
+				b, err := json.MarshalIndent(keyContainer.PublicKeys.LocalCertificates, "", " ")
+				if err != nil {
+					fmt.Println(err.Error())
+					os.Exit(1)
+				}
+				fmt.Println(string(b))
+			} else {
+				fmt.Println("Public key subject names:")
+				for _, name := range keyContainer.PublicKeys.LocalCertificates {
+					fmt.Println(name.Subject.CommonName)
+				}
+			}
 		}
 
 		return nil

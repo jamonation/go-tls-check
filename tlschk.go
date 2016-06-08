@@ -84,14 +84,13 @@ func hashMaterial(material string) string {
 }
 
 // parse a PEM block and return an x509 certificate
-func parseCert(certBlock *pem.Block) *x509.Certificate {
+func parseCert(certBlock *pem.Block) (*x509.Certificate, error) {
 	decodedCertASN1, err := x509.ParseCertificate(certBlock.Bytes)
 	if err != nil {
 		fmt.Println("Unable to parse public certificate. Error was:")
-		fmt.Println(err.Error())
-		os.Exit(1)
+		return nil, err
 	}
-	return decodedCertASN1
+	return decodedCertASN1, nil
 }
 
 // decodeKey decodes raw pem bytes, and then returns the rsa private key
@@ -101,7 +100,6 @@ func (k *KeyContainer) decodeKey() (key *rsa.PrivateKey, err error) {
 		key, err = x509.ParsePKCS1PrivateKey(decodedKeyBytes.Bytes)
 		if err != nil {
 			fmt.Println("Unable to parse private key. Error was:")
-			fmt.Println(err.Error())
 			return nil, err
 		}
 	} else {
@@ -111,24 +109,29 @@ func (k *KeyContainer) decodeKey() (key *rsa.PrivateKey, err error) {
 	return key, nil
 }
 
-func (k *KeyContainer) decodeCerts() (certs []*x509.Certificate) {
-
-	//var cert *pem.Block
-	//var certASN1 *x509.Certificate
-	//var ASN1certs []*x509.Certificate
-	//var publicKeys []interface{}
+func (k *KeyContainer) decodeCerts() (certs []*x509.Certificate, err error) {
 	certBlock, rest := pem.Decode(k.PublicKeys.Bytes)
 	if certBlock != nil {
-		certASN1 := parseCert(certBlock)
+		certASN1, err := parseCert(certBlock)
+		if err != nil {
+			return nil, err
+		}
 		certs = append(certs, certASN1)
+
 		for len(rest) > 0 {
 			certBlock, rest = pem.Decode(rest)
-			certASN1 = parseCert(certBlock)
+			certASN1, err = parseCert(certBlock)
+			if err != nil {
+				return nil, err
+			}
 			certs = append(certs, certASN1)
 		}
+	} else {
+		err = errors.New("Could not parse certificate(s)")
+		return nil, err
 	}
 
-	return certs
+	return certs, nil
 
 }
 
@@ -154,7 +157,10 @@ func ProcessCerts(k KeyContainer) (KeyContainer, error) {
 	if err != nil {
 		return k, err
 	}
-	k.PublicKeys.LocalCertificates = k.decodeCerts()
+	k.PublicKeys.LocalCertificates, err = k.decodeCerts()
+	if err != nil {
+		return k, err
+	}
 	for _, cert := range k.PublicKeys.LocalCertificates {
 		fmt.Println(cert.Subject.CommonName)
 	}
