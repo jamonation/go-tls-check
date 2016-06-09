@@ -98,8 +98,8 @@ func main() {
 				fmt.Println(string(b))
 			} else {
 				fmt.Println("Public key subject names:")
-				for _, name := range keyContainer.PublicKeys.LocalCertificates {
-					fmt.Println(name.Subject.CommonName)
+				for _, cert := range keyContainer.PublicKeys.LocalCertificates {
+					tlschk.PrintText(*cert)
 				}
 			}
 		}

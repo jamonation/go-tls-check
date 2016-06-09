@@ -10,57 +10,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"net"
 	"os"
-	"time"
 )
-
-type CertList struct {
-	PeerCertificates  []*x509.Certificate
-	VerifiedChains    []*x509.Certificate
-	LocalCertificates []*x509.Certificate
-	Bytes             []byte
-}
-
-// KeyJSON is a container for key & associated (or not) certs
-type KeyJSON struct {
-	ModulusSHA1    string `json:"PrivateKeySHA1Modulus"`
-	Filename       string `json:"PrivateKeyFilename"`
-	MatchedCerts   []CertJSON
-	UnmatchedCerts []CertJSON
-}
-
-// CertJSON contains some selected ASN1 fields for json output
-// willing to add more ASN1 fields, or all if requested
-type CertJSON struct {
-	CommonName      string
-	NotBefore       time.Time
-	NotAfter        time.Time
-	SerialNumber    *big.Int
-	SHA1Fingerprint string
-	ModulusSHA1     string
-	Issuer          string
-	IsCA            bool
-	DNSNames        []string
-	EmailAddresses  []string
-	IPAddresses     []net.IP
-	Filename        string
-}
-
-// PrivateKey contains the rsa key, raw byte version, and
-// a JSON representation of the public key & associated cert(s)
-type PrivateKey struct {
-	Key     *rsa.PrivateKey
-	Bytes   []byte
-	Hash    string `json:"public key hash"`
-	KeyJSON KeyJSON
-}
-
-// KeyContainer is the main struct that contains both public and private keys
-type KeyContainer struct {
-	PublicKeys CertList
-	PrivateKey PrivateKey
-}
 
 func readFile(f string) (b []byte, err error) {
 	file, err := os.Open(f)
@@ -72,15 +23,6 @@ func readFile(f string) (b []byte, err error) {
 		return nil, err
 	}
 	return data, err
-}
-
-// HashMaterial returns hex encoded SHA1 sums of input strings
-func hashMaterial(material string) string {
-	h := sha1.New()
-	h.Write([]byte(material))
-	shaSum := h.Sum(nil)
-	hash := hex.EncodeToString(shaSum)
-	return hash
 }
 
 // parse a PEM block and return an x509 certificate
@@ -135,6 +77,29 @@ func (k *KeyContainer) decodeCerts() (certs []*x509.Certificate, err error) {
 
 }
 
+// ExtractModulus uses type assertion to get the modulus from a public or private key
+// WHERE IS THE ERROR HANDLING!? Or, should this never be reached if there's no modulus?
+func ExtractModulus(publicKey interface{}) string {
+	var modulus string
+
+	switch key := publicKey.(type) {
+	case *rsa.PublicKey:
+		modulus = key.N.String()
+	case *big.Int:
+		modulus = key.String()
+	}
+	return modulus
+}
+
+// HashMaterial returns hex encoded SHA1 sums of input strings
+func HashMaterial(material string) string {
+	h := sha1.New()
+	h.Write([]byte(material))
+	shaSum := h.Sum(nil)
+	hash := hex.EncodeToString(shaSum)
+	return hash
+}
+
 // ProcessKey reads and returns a private key from the filesystem
 func ProcessKey(k KeyContainer) (KeyContainer, error) {
 	var err error
@@ -146,7 +111,7 @@ func ProcessKey(k KeyContainer) (KeyContainer, error) {
 	if err != nil {
 		return k, err
 	}
-	k.PrivateKey.Hash = hashMaterial(k.PrivateKey.Key.N.String())
+	k.PrivateKey.Hash = HashMaterial(k.PrivateKey.Key.N.String())
 	return k, nil
 }
 
@@ -161,8 +126,6 @@ func ProcessCerts(k KeyContainer) (KeyContainer, error) {
 	if err != nil {
 		return k, err
 	}
-	for _, cert := range k.PublicKeys.LocalCertificates {
-		fmt.Println(cert.Subject.CommonName)
-	}
+
 	return k, nil
 }
