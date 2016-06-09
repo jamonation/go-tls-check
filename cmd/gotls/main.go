@@ -2,11 +2,14 @@ package main
 
 import (
 	//"crypto/tls"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/codegangsta/cli"
 	tlschk "github.com/jamonation/gotls"
-	"os"
 )
 
 func main() {
@@ -62,6 +65,26 @@ func main() {
 		*/
 
 		switch {
+		case tlschk.CertFile != "":
+			keyContainer, err = tlschk.ProcessCerts(keyContainer)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			if tlschk.Output == "json" {
+				b, err := json.MarshalIndent(keyContainer.PublicKeys.LocalCertificates, "", " ")
+				if err != nil {
+					fmt.Println(err.Error())
+					os.Exit(1)
+				}
+				fmt.Println(string(b))
+			} else {
+				fmt.Println("Public key subject names:")
+				for _, cert := range keyContainer.PublicKeys.LocalCertificates {
+					tlschk.PrintText(*cert)
+				}
+			}
 		case tlschk.KeyFile != "":
 			keyContainer, err = tlschk.ProcessKey(keyContainer)
 			if err != nil {
@@ -82,24 +105,49 @@ func main() {
 				fmt.Println("Private key modulus SHA1 hash:", keyContainer.PrivateKey.Hash)
 			}
 
-		case tlschk.CertFile != "":
-			keyContainer, err = tlschk.ProcessCerts(keyContainer)
+		case tlschk.Server != "":
+			if tlschk.Host == "" {
+				tlschk.Host = tlschk.Server
+			}
+			conn, err := tls.Dial("tcp", tlschk.Host+":"+strconv.Itoa(tlschk.Port), &tls.Config{InsecureSkipVerify: tlschk.InsecureSkipVerify})
+			defer conn.Close()
+			if err != nil {
+				fmt.Println("Failed to connect: " + err.Error())
+				os.Exit(1)
+			}
+
+			keyContainer, err := tlschk.CheckCerts(conn, keyContainer)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
 
-			if tlschk.Output == "json" {
-				b, err := json.MarshalIndent(keyContainer.PublicKeys.LocalCertificates, "", " ")
-				if err != nil {
-					fmt.Println(err.Error())
-					os.Exit(1)
+			if tlschk.InsecureSkipVerify == true {
+				if tlschk.Output == "json" {
+					b, err := json.MarshalIndent(keyContainer.PublicKeys.PeerCertificates, "", " ")
+					if err != nil {
+						fmt.Println(err.Error())
+						os.Exit(1)
+					}
+					fmt.Println(string(b))
+				} else {
+					for _, cert := range keyContainer.PublicKeys.PeerCertificates {
+						tlschk.PrintText(*cert)
+					}
 				}
-				fmt.Println(string(b))
-			} else {
-				fmt.Println("Public key subject names:")
-				for _, cert := range keyContainer.PublicKeys.LocalCertificates {
-					tlschk.PrintText(*cert)
+			}
+			if tlschk.InsecureSkipVerify == false {
+				if tlschk.Output == "json" {
+					b, err := json.MarshalIndent(keyContainer.PublicKeys.VerifiedChains, "", " ")
+					if err != nil {
+						fmt.Println(err.Error())
+						os.Exit(1)
+					}
+					fmt.Println(string(b))
+				} else {
+					for _, cert := range keyContainer.PublicKeys.VerifiedChains {
+						tlschk.PrintText(*cert)
+					}
 				}
 			}
 		}
