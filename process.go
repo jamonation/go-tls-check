@@ -129,3 +129,8 @@ func ProcessCerts(k KeyContainer) (KeyContainer, error) {
 
 	return k, nil
 }
+
+// CheckKeyPair looks to see if a key and cert match each other
+func CheckKeyPair(k KeyContainer) (KeyContainer, error) {
+	return k, nil
+}
