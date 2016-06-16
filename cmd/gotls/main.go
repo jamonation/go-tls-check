@@ -36,17 +36,7 @@ func main() {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
-			privateKeyModulus := keyContainer.PrivateKey.Key.N
-			for _, cert := range keyContainer.PublicKeys.LocalCertificates {
-				publicKey := cert.PublicKey
-				publicKeyModulus := tlschk.ExtractModulus(publicKey)
-				if publicKeyModulus == privateKeyModulus.String() {
-					fmt.Println("\nPublic and private keys MATCH")
-					fmt.Println("Private key modulus SHA1 hash:", tlschk.HashMaterial(privateKeyModulus.String()))
-					fmt.Println("Public cert modulus SHA1 hash:", tlschk.HashMaterial(publicKeyModulus))
-					tlschk.PrintText(*cert)
-				}
-			}
+			tlschk.PrintKeyAndCerts(keyContainer)
 		case tlschk.CertFile != "":
 			keyContainer, err = tlschk.ProcessCerts(keyContainer)
 			if err != nil {

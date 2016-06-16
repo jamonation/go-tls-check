@@ -2,6 +2,7 @@ package tlschk
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 
 	"github.com/fatih/color"
@@ -58,5 +59,59 @@ func PrintText(c x509.Certificate) {
 		printDefaultField("Modulus SHA1:", modSum)
 		printDefaultField("Signature algo:", SignatureAlgorithms[int(c.SignatureAlgorithm)])
 		printSignerField("Signed by:", c.Issuer.CommonName)
+	}
+}
+
+// PrintKeyAndCerts prints matching or unmatching certificates and keys
+func PrintKeyAndCerts(k KeyContainer) {
+	privateKeyModulus := k.PrivateKey.Key.N
+	matchedCerts := k.PrivateKey.KeyJSON.MatchedCerts
+	unmatchedCerts := k.PrivateKey.KeyJSON.UnmatchedCerts
+	switch {
+	case Output == "json":
+		for _, cert := range k.PublicKeys.LocalCertificates {
+			publicKeyModulus := ExtractModulus(cert.PublicKey)
+			certModulusHash := HashMaterial(ExtractModulus(cert.PublicKey))
+			certJSON := CertJSON{
+				CommonName:      cert.Subject.CommonName,
+				SerialNumber:    cert.SerialNumber,
+				Issuer:          cert.Issuer.CommonName,
+				IsCA:            cert.IsCA,
+				NotBefore:       cert.NotBefore,
+				NotAfter:        cert.NotAfter,
+				DNSNames:        cert.DNSNames,
+				EmailAddresses:  cert.EmailAddresses,
+				IPAddresses:     cert.IPAddresses,
+				SHA1Fingerprint: HashMaterial(string(cert.Raw)),
+				ModulusSHA1:     certModulusHash,
+				Filename:        CertFile,
+			}
+			if publicKeyModulus == privateKeyModulus.String() {
+				matchedCerts = append(matchedCerts, certJSON)
+			} else {
+				unmatchedCerts = append(unmatchedCerts, certJSON)
+			}
+		}
+		k.PrivateKey.KeyJSON.MatchedCerts = matchedCerts
+		k.PrivateKey.KeyJSON.UnmatchedCerts = unmatchedCerts
+		k.PrivateKey.KeyJSON.ModulusSHA1 = HashMaterial(k.PrivateKey.Key.N.String())
+		k.PrivateKey.KeyJSON.Filename = KeyFile
+		b, err := json.MarshalIndent(k.PrivateKey.KeyJSON, "", "  ")
+		if err != nil {
+			fmt.Println(err.Error)
+		}
+		fmt.Println(string(b))
+	case Output != "json":
+		for _, cert := range k.PublicKeys.LocalCertificates {
+			publicKeyModulus := ExtractModulus(cert.PublicKey)
+			if publicKeyModulus == privateKeyModulus.String() {
+				fmt.Println("\nPublic and private keys MATCH")
+			} else {
+				fmt.Println("\nPublic and private keys DO NOT MATCH")
+			}
+			fmt.Println("Private key modulus SHA1 hash:", HashMaterial(privateKeyModulus.String()))
+			fmt.Println("Public cert modulus SHA1 hash:", HashMaterial(publicKeyModulus))
+			PrintText(*cert)
+		}
 	}
 }

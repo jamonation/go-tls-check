@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// CertList is a container for local and remote certificates
 type CertList struct {
 	PeerCertificates  []*x509.Certificate
 	VerifiedChains    []*x509.Certificate
