@@ -1,36 +1,5 @@
 package tlschk
 
-import (
-	"math/big"
-	"net"
-	"time"
-)
-
-// KeyJSON is a container for key & associated (or not) certs
-type KeyJSON struct {
-	ModulusSHA1    string `json:"PrivateKeySHA1Modulus"`
-	Filename       string `json:"PrivateKeyFilename"`
-	MatchedCerts   []CertJSON
-	UnmatchedCerts []CertJSON
-}
-
-// CertJSON contains some selected ASN1 fields for json output
-// willing to add more ASN1 fields, or all if requested
-type CertJSON struct {
-	CommonName      string
-	NotBefore       time.Time
-	NotAfter        time.Time
-	SerialNumber    *big.Int
-	SHA1Fingerprint string
-	ModulusSHA1     string
-	Issuer          string
-	IsCA            bool
-	DNSNames        []string
-	EmailAddresses  []string
-	IPAddresses     []net.IP
-	Filename        string
-}
-
 // various mappings for signatures, cipher suites
 // thanks to
 var (
