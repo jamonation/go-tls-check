@@ -11,8 +11,10 @@ func CheckCerts(conn *tls.Conn, k KeyContainer) (KeyContainer, error) {
 	connTLSVersion := conn.ConnectionState().Version
 	connCipherSuite := conn.ConnectionState().CipherSuite
 
-	fmt.Println("\nConnected to", Host, "with protocol:", TLSVersions[connTLSVersion])
-	fmt.Println("Negotiated cipher suite:", CipherSuiteMap[connCipherSuite])
+	if Output != "json" {
+		fmt.Println("\nConnected to", Host, "with protocol:", TLSVersions[connTLSVersion])
+		fmt.Println("Negotiated cipher suite:", CipherSuiteMap[connCipherSuite])
+	}
 
 	if InsecureSkipVerify == false { // default behaviour unless -insecure flag is used
 		err := conn.VerifyHostname(Server)

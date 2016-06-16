@@ -16,9 +16,10 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "gotls"
+	app.Version = "0.0.2"
 	app.Usage = "Examine local and remote SSL keys and certificates"
 
-	app.Flags = tlschk.AppFlags //flags live in appflags.go
+	app.Flags = tlschk.AppFlags //flags live in ../../flags.go
 
 	app.Action = func(c *cli.Context) error {
 		var keyContainer tlschk.KeyContainer
@@ -126,6 +127,7 @@ func main() {
 
 		return nil
 	}
+	
 	app.Run(os.Args)
 
 }

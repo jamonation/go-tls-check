@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/fatih/color"
 )
@@ -41,7 +42,7 @@ func PrintText(c x509.Certificate) {
 	modSum := HashMaterial(pubKey)
 
 	if !c.IsCA {
-		printDefaultFieldWithemoji(emojiKey, "Certificate for:", c.Subject.CommonName)
+		printDefaultFieldWithemoji(emojiKey, "Certificate for:", c.DNSNames)
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
@@ -51,7 +52,11 @@ func PrintText(c x509.Certificate) {
 		printSignerField("Issued by:", c.Issuer.CommonName)
 	} else {
 		fmt.Println(lightVerticalBar)
-		printDefaultFieldWithemoji(emojiLock, "Intermediate CA:", c.Subject.CommonName)
+		if c.Subject.CommonName == c.Issuer.CommonName {
+			printDefaultFieldWithemoji(emojiLock, "ROOT CA:", c.Subject.CommonName)
+		} else {
+			printDefaultFieldWithemoji(emojiLock, "Intermediate CA:", c.Subject.CommonName)
+		}
 		printDefaultField("Valid from:", c.NotBefore)
 		printDefaultField("Valid until:", c.NotAfter)
 		printDefaultField("Serial number:", c.SerialNumber)
@@ -98,7 +103,8 @@ func PrintKeyAndCerts(k KeyContainer) {
 		k.PrivateKey.KeyJSON.Filename = KeyFile
 		b, err := json.MarshalIndent(k.PrivateKey.KeyJSON, "", "  ")
 		if err != nil {
-			fmt.Println(err.Error)
+			fmt.Println(err.Error())
+			os.Exit(1)
 		}
 		fmt.Println(string(b))
 	case Output != "json":
