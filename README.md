@@ -2,6 +2,9 @@
 
 This tool is intended to make it easy to parse local PEM encoded RSA keys and x509 certificates, which are commonly used for HTTPS encryption.
 
+![gotls preview for golang.org](https://raw.githubusercontent.com/jamonation/gotls/master/gotls-preview.png)
+
+
 Flags are:
 
 ```
