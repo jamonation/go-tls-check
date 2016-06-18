@@ -101,9 +101,9 @@ func HashMaterial(material string) string {
 }
 
 // ProcessKey reads and returns a private key from the filesystem
-func ProcessKey(k KeyContainer) (KeyContainer, error) {
+func ProcessKey(k KeyContainer, keyFile string) (KeyContainer, error) {
 	var err error
-	k.PrivateKey.Bytes, err = readFile(KeyFile)
+	k.PrivateKey.Bytes, err = readFile(keyFile)
 	if err != nil {
 		return k, err
 	}
@@ -116,9 +116,9 @@ func ProcessKey(k KeyContainer) (KeyContainer, error) {
 }
 
 // ProcessCerts reads and returns an array of certificates
-func ProcessCerts(k KeyContainer) (KeyContainer, error) {
+func ProcessCerts(k KeyContainer, certFile string) (KeyContainer, error) {
 	var err error
-	k.PublicKeys.Bytes, err = readFile(CertFile)
+	k.PublicKeys.Bytes, err = readFile(certFile)
 	if err != nil {
 		return k, err
 	}
@@ -127,10 +127,5 @@ func ProcessCerts(k KeyContainer) (KeyContainer, error) {
 		return k, err
 	}
 
-	return k, nil
-}
-
-// CheckKeyPair looks to see if a key and cert match each other
-func CheckKeyPair(k KeyContainer) (KeyContainer, error) {
 	return k, nil
 }
