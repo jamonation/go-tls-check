@@ -68,7 +68,7 @@ func PrintText(c x509.Certificate) {
 }
 
 // PrintKeyAndCerts prints matching or unmatching certificates and keys
-func PrintKeyAndCerts(k KeyContainer) {
+func PrintKeyAndCerts(k KeyContainer, Output string) {
 	privateKeyModulus := k.PrivateKey.Key.N
 	matchedCerts := k.PrivateKey.KeyJSON.MatchedCerts
 	unmatchedCerts := k.PrivateKey.KeyJSON.UnmatchedCerts

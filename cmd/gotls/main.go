@@ -27,19 +27,19 @@ func main() {
 
 		switch {
 		case tlschk.CertFile != "" && tlschk.KeyFile != "":
-			keyContainer, err = tlschk.ProcessKey(keyContainer)
+			keyContainer, err = tlschk.ProcessKey(keyContainer, tlschk.KeyFile)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
-			keyContainer, err = tlschk.ProcessCerts(keyContainer)
+			keyContainer, err = tlschk.ProcessCerts(keyContainer, tlschk.CertFile)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
-			tlschk.PrintKeyAndCerts(keyContainer)
+			tlschk.PrintKeyAndCerts(keyContainer, tlschk.Output)
 		case tlschk.CertFile != "":
-			keyContainer, err = tlschk.ProcessCerts(keyContainer)
+			keyContainer, err = tlschk.ProcessCerts(keyContainer, tlschk.CertFile)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
@@ -59,7 +59,7 @@ func main() {
 				}
 			}
 		case tlschk.KeyFile != "":
-			keyContainer, err = tlschk.ProcessKey(keyContainer)
+			keyContainer, err = tlschk.ProcessKey(keyContainer, tlschk.KeyFile)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
