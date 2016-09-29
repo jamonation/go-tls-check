@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"github.com/fatih/color"
 )
 
 const lightVerticalBar = "\u2758" // vertical bar
@@ -14,13 +12,10 @@ const arrowDownRight = "\u2937"   // down right arrow
 const emojiKey = "\U0001f511"     // key
 const emojiLock = "\U0001f512"    // lock
 
-var label = color.New(color.FgRed, color.Bold).SprintFunc()
-var warning = color.New(color.FgRed, color.Bold, color.Underline)
-
 func printField(prefix string, field string, value interface{}) {
 	// Nasty hard-coded paddings. These should be calculated based on the
 	// width of the longest field name.
-	fmt.Printf("%-5s%-24s\t%s\n", prefix, label(field), value)
+	fmt.Printf("%-5s%-24s\t%s\n", prefix, Label(field), value)
 }
 
 func printDefaultField(field string, value interface{}) {

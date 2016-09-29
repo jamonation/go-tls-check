@@ -1,3 +1,5 @@
+//+build !test
+
 package main
 
 import (
@@ -104,6 +106,7 @@ func main() {
 					}
 					fmt.Println(string(b))
 				} else {
+					tlschk.Warning.Printf("WARNING: -noverify option specified. Only examining certificates sent by the remote server.\n")
 					for _, cert := range keyContainer.PublicKeys.PeerCertificates {
 						tlschk.PrintText(*cert)
 					}
