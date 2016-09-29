@@ -3,7 +3,6 @@ package tlschk
 import (
 	//"crypto/x509"
 
-
 	//"github.com/fatih/color"
 	//"fmt"
 	"testing"
@@ -18,7 +17,7 @@ func TestPrintText(t *testing.T) {
 	k, err = ProcessCerts(k, certFile)
 	if err != nil {
 		t.Errorf(err.Error())
-	}	
+	}
 	c := k.PublicKeys.LocalCertificates[0]
 	PrintText(*c)
 }
