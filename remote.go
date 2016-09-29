@@ -23,7 +23,6 @@ func CheckCerts(conn *tls.Conn, k KeyContainer) (KeyContainer, error) {
 		}
 		k.PublicKeys.VerifiedChains = conn.ConnectionState().VerifiedChains[0]
 	} else { // use unverified cert chain, e.g. when connecting with -insecure
-		warning.Printf("WARNING: -noverify option specified. Only examining certificates sent by the remote server.\n")
 		k.PublicKeys.PeerCertificates = conn.ConnectionState().PeerCertificates
 	}
 	return k, nil

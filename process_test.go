@@ -31,7 +31,7 @@ func TestParseCert(t *testing.T) {
 }
 
 func TestDecodeKey(t *testing.T) {
-	var k KeyContainer	
+	var k KeyContainer
 	k.PrivateKey.Bytes, _ = readFile(keyFile)
 	_, err := k.decodeKey()
 	if err != nil {
@@ -93,4 +93,3 @@ func TestProcessCerts(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 }
-
