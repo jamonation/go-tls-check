@@ -1,4 +1,4 @@
-Build: [![CircleCI](https://circleci.com/gh/jamonation/gotls/tree/master.svg?style=svg)](https://circleci.com/gh/jamonation/gotls/tree/master) [![Go Report Card](https://goreportcard.com/badge/github.com/jamonation/gotls)](https://goreportcard.com/report/github.com/jamonation/gotls)
+Build: [![CircleCI](https://circleci.com/gh/jamonation/gotls/tree/master.svg?style=svg)](https://circleci.com/gh/jamonation/gotls/tree/master) [![Go Report Card](https://goreportcard.com/badge/github.com/jamonation/gotls)](https://goreportcard.com/report/github.com/jamonation/gotls) [![Coverage Status](https://coveralls.io/repos/github/jamonation/gotls/badge.svg?branch=testing123)](https://coveralls.io/github/jamonation/gotls?branch=testing123)
 
 This tool is intended to make it easy to parse local PEM encoded RSA keys and x509 certificates, which are commonly used for HTTPS encryption.
 
