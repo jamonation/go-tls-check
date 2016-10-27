@@ -1,6 +1,13 @@
 general:
   build_dir: cmd/gotls
 
+machine:
+  environment:
+    # GOROOT is not set by default
+    GOROOT: ""
+    PATH: "/usr/local/go/bin:/usr/local/go_workspace/bin:~/.go_workspace/bin:${PATH}"
+    GOPATH: "${HOME}/.go_workspace:/usr/local/go_workspace:${HOME}/.go_project"
+
 deployment:
   release:
     branch: master
